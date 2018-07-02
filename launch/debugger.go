@@ -19,7 +19,7 @@ func (d *debugger) IsReady() bool {
 func (d *debugger) WaitUntilReady(maxWait time.Duration) bool {
 	deadline := time.Now().Add(maxWait)
 	for {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", d.port), time.Second)
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", d.port), time.Second)
 		if err != nil {
 			if deadline.Before(time.Now()) {
 				if d.debug {
