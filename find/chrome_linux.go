@@ -2,6 +2,7 @@ package find
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -55,7 +56,7 @@ func fromDesktop() []string {
 	if user, err := user.Current(); err == nil {
 		desktopInstallationFolders = append(desktopInstallationFolders, path.Join(user.HomeDir, ".local/share/applications/"))
 	}
-	installations = make([]string, 0)
+	installations := make([]string, 0)
 	for _, dir := range desktopInstallationFolders {
 		installations = append(installations, findChromeExecutables(dir)...)
 	}
@@ -78,7 +79,7 @@ func findChromeExecutables(dir string) []string {
 		// Some systems do not support grep -R so fallback to -r.
 		// See https://github.com/GoogleChrome/chrome-launcher/issues/46 for more context.
 		cmd = exec.Command(fmt.Sprintf(`grep -Er %q %s | awk -F '=' '{print $2}'`, chromeExecRegex, dir))
-		if err := exec.Command(); err != nil {
+		if err := cmd.Run(); err != nil {
 			return []string{}
 		}
 	}
