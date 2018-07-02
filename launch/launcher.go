@@ -3,6 +3,7 @@ package launch
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -99,7 +100,7 @@ func (l *launcher) Launch() error {
 		return fmt.Errorf("error spawning chrome: %s", err)
 	}
 
-	d := &debugger{port: l.port}
+	d := &debugger{port: l.port, debug: l.cfg.LauncherDebug}
 	if !d.WaitUntilReady(l.cfg.MaxConnectWait) {
 		return fmt.Errorf("timed out awaiting debugger connection")
 	}
@@ -158,10 +159,17 @@ func (l *launcher) spawn() error {
 	cmd.Stdout = l.outFile
 	cmd.Stderr = l.errFile
 	cmd.Env = l.cfg.Env()
+	if l.cfg.LauncherDebug {
+		log.Println("exec", cmd.Path, cmd.Args)
+	}
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("error starting: %s", err)
 	}
 	l.cmd = cmd
+
+	if l.cfg.LauncherDebug {
+		log.Println("pid", cmd.Process.Pid)
+	}
 
 	if err := ioutil.WriteFile(l.pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0666); err != nil {
 		return fmt.Errorf("error writing pid file: %s", err)

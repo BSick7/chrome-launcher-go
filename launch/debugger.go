@@ -8,7 +8,8 @@ import (
 )
 
 type debugger struct {
-	port int
+	port  int
+	debug bool
 }
 
 func (d *debugger) IsReady() bool {
@@ -21,7 +22,9 @@ func (d *debugger) WaitUntilReady(maxWait time.Duration) bool {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", d.port), time.Second)
 		if err != nil {
 			if deadline.Before(time.Now()) {
-				log.Println("debugger dial error", err)
+				if d.debug {
+					log.Println("debugger dial error", err)
+				}
 				return false
 			}
 		} else if conn != nil {
@@ -29,5 +32,4 @@ func (d *debugger) WaitUntilReady(maxWait time.Duration) bool {
 			return true
 		}
 	}
-	return true
 }

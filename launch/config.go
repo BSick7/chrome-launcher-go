@@ -18,6 +18,8 @@ var (
 	ChromeLogLevelSilent  ChromeLogLevel = "silent"
 
 	DefaultMaxConnectWait = 30 * time.Second
+
+	DefaultPort = 9222
 )
 
 type Config struct {
@@ -30,6 +32,7 @@ type Config struct {
 	MaxConnectWait       time.Duration
 	EnvironmentVariables map[string]string
 	UserDataDir          string
+	LauncherDebug        bool
 }
 
 func (c Config) Normalize() Config {
