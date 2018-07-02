@@ -97,11 +97,13 @@ func (l *launcher) Launch() error {
 		return fmt.Errorf("error initializing: %s", err)
 	}
 	if err := l.spawn(); err != nil {
+		l.dumpErrFile()
 		return fmt.Errorf("error spawning chrome: %s", err)
 	}
 
 	d := &debugger{port: l.port, debug: l.cfg.LauncherDebug}
 	if !d.WaitUntilReady(l.cfg.MaxConnectWait) {
+		l.dumpErrFile()
 		return fmt.Errorf("timed out awaiting debugger connection")
 	}
 	return nil
@@ -175,4 +177,12 @@ func (l *launcher) spawn() error {
 		return fmt.Errorf("error writing pid file: %s", err)
 	}
 	return nil
+}
+
+func (l *launcher) dumpErrFile() {
+	if !l.cfg.LauncherDebug {
+		return
+	}
+	raw, _ := ioutil.ReadFile(l.errFile.Name())
+	log.Println(string(raw))
 }
