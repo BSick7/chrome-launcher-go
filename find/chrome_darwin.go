@@ -2,6 +2,7 @@ package find
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -67,7 +68,7 @@ func fromLaunchServices() []string {
 	raw, _ := cmd.Output()
 
 	installations := make([]string, 0)
-	for _, cur := range strings.Split(string(raw), `\n`) {
+	for _, inst := range strings.Split(string(raw), `\n`) {
 		for _, suffix := range suffixes {
 			installations = append(installations, path.Join(strings.TrimSpace(inst), suffix))
 		}
