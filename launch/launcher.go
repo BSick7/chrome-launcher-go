@@ -50,6 +50,32 @@ func (l *launcher) Pid() int {
 	return l.cmd.Process.Pid
 }
 
+func (l *launcher) Launch() error {
+	if l.cfg.RequestedPort != 0 {
+		l.port = l.cfg.RequestedPort
+		// If an explicit port is passed, first look for an open connection...
+		d := &debugger{port: l.port}
+		if d.IsReady() {
+			return nil
+		}
+	}
+
+	if err := l.init(); err != nil {
+		return fmt.Errorf("error initializing: %s", err)
+	}
+	if err := l.spawn(); err != nil {
+		l.dumpChromeLogs()
+		return fmt.Errorf("error spawning chrome: %s", err)
+	}
+
+	d := &debugger{port: l.port, debug: l.cfg.LauncherDebug}
+	if !d.WaitUntilReady(l.cfg.MaxConnectWait) {
+		l.dumpChromeLogs()
+		return fmt.Errorf("timed out awaiting debugger connection")
+	}
+	return nil
+}
+
 func (l *launcher) init() error {
 	if l.inited {
 		return nil
@@ -81,66 +107,6 @@ func (l *launcher) init() error {
 	l.pidFile = path.Join(l.cfg.UserDataDir, "chrome.pid")
 	l.inited = true
 	return nil
-}
-
-func (l *launcher) Launch() error {
-	if l.cfg.RequestedPort != 0 {
-		l.port = l.cfg.RequestedPort
-		// If an explicit port is passed, first look for an open connection...
-		d := &debugger{port: l.port}
-		if d.IsReady() {
-			return nil
-		}
-	}
-
-	if err := l.init(); err != nil {
-		return fmt.Errorf("error initializing: %s", err)
-	}
-	if err := l.spawn(); err != nil {
-		l.dumpErrFile()
-		return fmt.Errorf("error spawning chrome: %s", err)
-	}
-
-	d := &debugger{port: l.port, debug: l.cfg.LauncherDebug}
-	if !d.WaitUntilReady(l.cfg.MaxConnectWait) {
-		l.dumpErrFile()
-		return fmt.Errorf("timed out awaiting debugger connection")
-	}
-	return nil
-}
-
-func (l *launcher) Kill() error {
-	if l.cmd == nil {
-		return nil
-	}
-
-	defer func() {
-		l.cmd = nil
-		l.destroyTmp()
-	}()
-	if err := l.cmd.Process.Kill(); err != nil {
-		return fmt.Errorf("error killing chrome: %s", err)
-	}
-	return nil
-}
-
-func (l *launcher) destroyTmp() {
-	// Only clean up the tmp dir if we created it
-	if !l.createdUserDir {
-		return
-	}
-
-	if l.outFile != nil {
-		l.outFile.Close()
-		l.outFile = nil
-	}
-
-	if l.errFile != nil {
-		l.errFile.Close()
-		l.errFile = nil
-	}
-
-	os.RemoveAll(l.cfg.UserDataDir)
 }
 
 func (l *launcher) spawn() error {
@@ -179,10 +145,46 @@ func (l *launcher) spawn() error {
 	return nil
 }
 
-func (l *launcher) dumpErrFile() {
+func (l *launcher) Kill() error {
+	if l.cmd == nil {
+		return nil
+	}
+
+	defer func() {
+		l.cmd = nil
+		l.destroyTmp()
+	}()
+	if err := l.cmd.Process.Kill(); err != nil {
+		return fmt.Errorf("error killing chrome: %s", err)
+	}
+	return nil
+}
+
+func (l *launcher) destroyTmp() {
+	// Only clean up the tmp dir if we created it
+	if !l.createdUserDir {
+		return
+	}
+
+	if l.outFile != nil {
+		l.outFile.Close()
+		l.outFile = nil
+	}
+
+	if l.errFile != nil {
+		l.errFile.Close()
+		l.errFile = nil
+	}
+
+	os.RemoveAll(l.cfg.UserDataDir)
+}
+
+func (l *launcher) dumpChromeLogs() {
 	if !l.cfg.LauncherDebug {
 		return
 	}
-	raw, _ := ioutil.ReadFile(l.errFile.Name())
-	log.Println(string(raw))
+	raw, _ := ioutil.ReadFile(l.outFile.Name())
+	log.Println("out", l.outFile.Name(), string(raw))
+	raw, _ = ioutil.ReadFile(l.errFile.Name())
+	log.Println("err", l.errFile.Name(), string(raw))
 }
