@@ -12,10 +12,10 @@ import (
 type ChromeLogLevel string
 
 var (
-	ChromeLogLevelVerbose ChromeLogLevel = "verbose"
 	ChromeLogLevelInfo    ChromeLogLevel = "info"
+	ChromeLogLevelWarning ChromeLogLevel = "warning"
 	ChromeLogLevelError   ChromeLogLevel = "error"
-	ChromeLogLevelSilent  ChromeLogLevel = "silent"
+	ChromeLogLevelFatal   ChromeLogLevel = "fatal"
 
 	DefaultMaxConnectWait = 30 * time.Second
 
@@ -42,7 +42,7 @@ func (c Config) Normalize() Config {
 		normalized.StartingUrl = "about:blank"
 	}
 	if normalized.LogLevel == "" {
-		normalized.LogLevel = ChromeLogLevelSilent
+		normalized.LogLevel = ChromeLogLevelFatal
 	}
 	if normalized.ChromeFlags == nil {
 		normalized.ChromeFlags = []string{}
@@ -73,10 +73,38 @@ func (c Config) Flags(port int) []string {
 		flags = append(flags, fmt.Sprintf(`--user-data-dir=%s`, udd))
 	}
 
+	flags = append(flags, c.LogFlags()...)
 	flags = append(flags, c.ChromeFlags...)
 	flags = append(flags, c.StartingUrl)
 
 	return flags
+}
+
+func (c Config) LogFlags() []string {
+	switch c.LogLevel {
+	case ChromeLogLevelInfo:
+		return []string{
+			"--enable-logging",
+			"--log-level=0",
+		}
+	case ChromeLogLevelWarning:
+		return []string{
+			"--enable-logging",
+			"--log-level=1",
+		}
+	case ChromeLogLevelError:
+		return []string{
+			"--enable-logging",
+			"--log-level=2",
+		}
+	case ChromeLogLevelFatal:
+		return []string{
+			"--enable-logging",
+			"--log-level=3",
+		}
+	default:
+		return []string{}
+	}
 }
 
 func (c Config) Env() []string {
