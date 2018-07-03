@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// This is a simple test
-	// This should launch google in a chrome browser and close after 5s
+	// This should launch google in a chrome browser and close after 3s
 	launcher := launch.New(launch.Config{
 		StartingUrl: "https://www.google.com",
 		ChromePath:  find.Chrome(),
