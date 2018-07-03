@@ -8,6 +8,11 @@ var (
 		"--no-zygote", // helps avoid zombies
 		"--no-sandbox",
 		"--disable-setuid-sandbox",
+
+		// disable shared memory in lambda
+		//   - https://medium.com/@marco.luethy/running-headless-chrome-on-aws-lambda-fa82ad33a9eb
+		//   - https://github.com/GoogleChrome/puppeteer/issues/1834
+		"--disable-dev-shm-usage",
 	}
 )
 
