@@ -3,41 +3,25 @@ package launch
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"time"
-)
-
-type ChromeLogLevel string
-
-var (
-	ChromeLogLevelInfo    ChromeLogLevel = "info"
-	ChromeLogLevelWarning ChromeLogLevel = "warning"
-	ChromeLogLevelError   ChromeLogLevel = "error"
-	ChromeLogLevelFatal   ChromeLogLevel = "fatal"
-
-	DefaultMaxConnectWait = 30 * time.Second
-
-	DefaultPort = 9222
 )
 
 type Config struct {
 	StartingUrl          string
-	LogLevel             ChromeLogLevel
-	ChromeFlags          []string
 	RequestedPort        int
 	ChromePath           string
-	IgnoreDefaultFlags   bool
-	MaxConnectWait       time.Duration
+	ChromeFlags          []string
+	LogLevel             ChromeLogLevel
 	EnvironmentVariables map[string]string
 	UserDataDir          string
-	LauncherDebug        bool
+	IgnoreDefaultFlags   bool
+	IsLambdaEnv          bool
 }
 
 func (c Config) Normalize() Config {
 	normalized := c
 
+	normalized.LogLevel = NormalizeChromeLogLevel(normalized.LogLevel)
 	if normalized.StartingUrl == "" {
 		normalized.StartingUrl = "about:blank"
 	}
@@ -47,9 +31,6 @@ func (c Config) Normalize() Config {
 	if normalized.ChromeFlags == nil {
 		normalized.ChromeFlags = []string{}
 	}
-	if normalized.MaxConnectWait == 0 {
-		normalized.MaxConnectWait = DefaultMaxConnectWait
-	}
 	if normalized.EnvironmentVariables == nil {
 		normalized.EnvironmentVariables = envMapFromProcess()
 	}
@@ -57,54 +38,17 @@ func (c Config) Normalize() Config {
 	return normalized
 }
 
-func (c Config) Flags(port int) []string {
-	flags := DefaultChromeFlags
-	if c.IgnoreDefaultFlags {
-		flags = []string{}
-	}
-	flags = append(flags, fmt.Sprintf(`--remote-debugging-port=%d`, port))
-
-	if runtime.GOOS == "linux" {
-		flags = append(flags, "--disable-setuid-sandbox")
-	}
-
-	if c.UserDataDir != "" {
-		udd, _ := filepath.Abs(c.UserDataDir)
-		flags = append(flags, fmt.Sprintf(`--user-data-dir=%s`, udd))
-	}
-
-	flags = append(flags, c.LogFlags()...)
-	flags = append(flags, c.ChromeFlags...)
-	flags = append(flags, c.StartingUrl)
-
-	return flags
-}
-
 func (c Config) LogFlags() []string {
-	switch c.LogLevel {
-	case ChromeLogLevelInfo:
+	num := GetChromeLogLevelNumber(c.LogLevel)
+	// No need to set logging flags if requesting 'fatal'
+	if num < 3 {
 		return []string{
 			"--enable-logging",
-			"--log-level=0",
+			fmt.Sprintf("--log-level=%d", num),
+			"--v=99",
 		}
-	case ChromeLogLevelWarning:
-		return []string{
-			"--enable-logging",
-			"--log-level=1",
-		}
-	case ChromeLogLevelError:
-		return []string{
-			"--enable-logging",
-			"--log-level=2",
-		}
-	case ChromeLogLevelFatal:
-		return []string{
-			"--enable-logging",
-			"--log-level=3",
-		}
-	default:
-		return []string{}
 	}
+	return []string{}
 }
 
 func (c Config) Env() []string {

@@ -39,7 +39,7 @@ func init() {
  * 1. Look into CHROME_PATH env variable
  * 2. Look through launch services
  */
-func chrome() []string {
+func allChromeInstallations() []string {
 	installations := installs{}
 
 	// 1. Look into CHROME_PATH env variable

@@ -32,7 +32,7 @@ func init() {
  * 2. Look into the directories where .desktop are saved on gnome based distro's
  * 3. Look for google-chrome-stable & google-chrome executables by using the which command
  */
-func chrome() []string {
+func allChromeInstallations() []string {
 	installations := installs{}
 
 	// 1. Look into CHROME_PATH env variable

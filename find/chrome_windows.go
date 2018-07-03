@@ -10,7 +10,7 @@ import (
  * 1. Look into CHROME_PATH env variable
  * 2. Look through app data, program files, program files (x86)
  */
-func chrome() []string {
+func allChromeInstallations() []string {
 	// 1. Look into CHROME_PATH env variable
 	installations := fromEnv()
 
